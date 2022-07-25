@@ -97,9 +97,11 @@ def japanese_cleaners(text):
   marks = re.findall('[^\u3040-\u30ff\u4e00-\u9fff]', text)
   text = ''
   for i, mark in enumerate(marks):
-    text += pyopenjtalk.g2p(sentences[i], kana=False).replace(' ','')
+    if re.match('[\u3040-\u30ff\u4e00-\u9fff]', sentences[i]):
+      text += pyopenjtalk.g2p(sentences[i], kana=False).replace(' ','')
     text += unidecode(mark).replace(' ','')
-  text += pyopenjtalk.g2p(sentences[-1], kana=False).replace(' ','')
+  if re.match('[\u3040-\u30ff\u4e00-\u9fff]', sentences[-1]):
+      text += pyopenjtalk.g2p(sentences[-1], kana=False).replace(' ','')
   if re.match('[A-Za-z]',text[-1]):
     text += '.'
   return text
