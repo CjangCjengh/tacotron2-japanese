@@ -43,6 +43,12 @@ _abbreviations = [(re.compile('\\b%s\\.' % x[0], re.IGNORECASE), x[1]) for x in 
   ('ft', 'fort'),
 ]]
 
+# Regular expression matching Japanese without punctuation marks:
+_japanese_characters = re.compile(r'[A-Za-z\d\u3005\u3040-\u30ff\u4e00-\u9fff\uff11-\uff19\uff21-\uff3a\uff41-\uff5a\uff66-\uff9d]')
+
+# Regular expression matching non-Japanese characters or punctuation marks:
+_japanese_marks = re.compile(r'[^A-Za-z\d\u3005\u3040-\u30ff\u4e00-\u9fff\uff11-\uff19\uff21-\uff3a\uff41-\uff5a\uff66-\uff9d]')
+
 
 def expand_abbreviations(text):
   for regex, replacement in _abbreviations:
@@ -93,14 +99,14 @@ def english_cleaners(text):
 
 def japanese_cleaners(text):
   '''Pipeline for Japanese text.'''
-  sentences = re.split('[^\u3040-\u30ff\u4e00-\u9fff]', text)
-  marks = re.findall('[^\u3040-\u30ff\u4e00-\u9fff]', text)
+  sentences = re.split(_japanese_marks, text)
+  marks = re.findall(_japanese_marks, text)
   text = ''
   for i, mark in enumerate(marks):
-    if re.match('[\u3040-\u30ff\u4e00-\u9fff]', sentences[i]):
+    if re.match(_japanese_characters, sentences[i]):
       text += pyopenjtalk.g2p(sentences[i], kana=False).replace(' ','')
     text += unidecode(mark).replace(' ','')
-  if re.match('[\u3040-\u30ff\u4e00-\u9fff]', sentences[-1]):
+  if re.match(_japanese_characters, sentences[-1]):
       text += pyopenjtalk.g2p(sentences[-1], kana=False).replace(' ','')
   if re.match('[A-Za-z]',text[-1]):
     text += '.'
