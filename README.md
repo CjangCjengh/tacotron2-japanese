@@ -24,5 +24,5 @@ nani ka acl tara itsu demo hanashi te kudasai. gakuiN no koto ja naku, shiji nik
 #### Before
 何かあったらいつでも話して下さい。学院のことじゃなく、私事に関することでも何でも
 #### After
-na)nika:a)cltara:i)tsudemo:ha(na)shIte:ku(dasa)i.ga(kuiNno:ko(to)janaku,shi)jini:ka(Nsu)ru:ko(to)demo:na)nidemo.
+:na)nika;a)cltara;i)tsudemo;ha(na)shIte;ku(dasa)i.:ga(kuiNno;ko(to)janaku,:shi)jini;ka(Nsu)ru;ko(to)demo;na)nidemo.
 
