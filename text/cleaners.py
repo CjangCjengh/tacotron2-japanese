@@ -122,15 +122,20 @@ def japanese_tokenization_cleaners(text):
   '''Pipeline for tokenizing Japanese text.'''
   words = []
   for token in tokenizer.tokenize(text):
-    words.append(token.phonetic)
+    if token.phonetic!='*':
+      words.append(token.phonetic)
+    else:
+      words.append(token.surface)
   text = ''
-  for i in range(len(words)):
-    if re.match(_japanese_characters, words[i]):
+  for word in words:
+    if re.match(_japanese_characters, word):
+      if word[0] == '\u30fc':
+        continue
       if len(text)>0:
         text += ' '
-      text += pyopenjtalk.g2p(words[i], kana=False).replace(' ','')
+      text += pyopenjtalk.g2p(word, kana=False).replace(' ','')
     else:
-      text += unidecode(words[i]).replace(' ','')
+      text += unidecode(word).replace(' ','')
   if re.match('[A-Za-z]',text[-1]):
     text += '.'
   return text

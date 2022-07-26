@@ -10,15 +10,14 @@ Reference: [NVIDIA/tacotron2](https://github.com/NVIDIA/tacotron2)
 
 ## Cleaners
 File ./hparams.py line 30
-1. 'japanese_cleaners'
-
-before: 何かあったらいつでも話して下さい。学院のことじゃなく、私事に関することでも何でも
-
-after: nanikaacltaraitsudemohanashItekudasai.gakuiNnokotojanaku,shijinikaNsurukotodemonanidemo.
-
-2. 'japanese_tokenization_cleaners'
-
-before: 何かあったらいつでも話して下さい。学院のことじゃなく、私事に関することでも何でも
-
-after: nani ka acl tara itsu demo hanashi te kudasai. gakuiN no koto ja naku, shiji nikaNsuru koto de mo naNdemo.
+### 'japanese_cleaners'
+#### before
+何かあったらいつでも話して下さい。学院のことじゃなく、私事に関することでも何でも
+#### after
+nanikaacltaraitsudemohanashItekudasai.gakuiNnokotojanaku,shijinikaNsurukotodemonanidemo.
+### 'japanese_tokenization_cleaners'
+#### before
+何かあったらいつでも話して下さい。学院のことじゃなく、私事に関することでも何でも
+#### after
+nani ka acl tara itsu demo hanashi te kudasai. gakuiN no koto ja naku, shiji nikaNsuru koto de mo naNdemo.
 
