@@ -15,6 +15,7 @@ File ./hparams.py line 30
 before: 何かあったらいつでも話して下さい。学院のことじゃなく、私事に関することでも何でも
 
 after: nanikaacltaraitsudemohanashItekudasai.gakuiNnokotojanaku,shijinikaNsurukotodemonanidemo.
+
 2. 'japanese_tokenization_cleaners'
 
 before: 何かあったらいつでも話して下さい。学院のことじゃなく、私事に関することでも何でも
