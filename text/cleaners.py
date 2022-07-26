@@ -16,6 +16,7 @@ import re
 from unidecode import unidecode
 from .numbers import normalize_numbers
 import pyopenjtalk
+from janome.tokenizer import Tokenizer
 
 
 # Regular expression matching whitespace:
@@ -48,6 +49,10 @@ _japanese_characters = re.compile(r'[A-Za-z\d\u3005\u3040-\u30ff\u4e00-\u9fff\uf
 
 # Regular expression matching non-Japanese characters or punctuation marks:
 _japanese_marks = re.compile(r'[^A-Za-z\d\u3005\u3040-\u30ff\u4e00-\u9fff\uff11-\uff19\uff21-\uff3a\uff41-\uff5a\uff66-\uff9d]')
+
+
+# Tokenizer for Japanese
+tokenizer = Tokenizer()
 
 
 def expand_abbreviations(text):
@@ -112,5 +117,22 @@ def japanese_cleaners(text):
     text += '.'
   return text
 
+
+def japanese_tokenization_cleaners(text):
+  '''Pipeline for tokenizing Japanese text.'''
+  words = []
+  for token in tokenizer.tokenize(text):
+    words.append(token.phonetic)
+  text = ''
+  for i in range(len(words)):
+    if re.match(_japanese_characters, words[i]):
+      if len(text)>0:
+        text += ' '
+      text += pyopenjtalk.g2p(words[i], kana=False).replace(' ','')
+    else:
+      text += unidecode(words[i]).replace(' ','')
+  if re.match('[A-Za-z]',text[-1]):
+    text += '.'
+  return text
 
 
