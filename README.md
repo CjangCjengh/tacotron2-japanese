@@ -24,5 +24,15 @@ nani ka acl tara itsu demo hanashi te kudasai. gakuiN no koto ja naku, shiji nik
 #### Before
 何かあったらいつでも話して下さい。学院のことじゃなく、私事に関することでも何でも
 #### After
-:na)nika;a)cltara;i)tsudemo;ha(na)shIte;ku(dasa)i.:ga(kuiNno;ko(to)janaku,:shi)jini;ka(Nsu)ru;ko(to)demo;na)nidemo.
+:na)nika a)cltara i)tsudemo ha(na)shIte ku(dasa)i.:ga(kuiNno ko(to)janaku,:shi)jini ka(Nsu)ru ko(to)demo na)nidemo.
 
+## Models
+Remember to change this line in ./inference.ipynb
+```python
+sequence = np.array(text_to_sequence(text, ['japanese_cleaners']))[None, :]
+```
+### Sanoba Witch
+#### Ayachi NeNe
+* [Model 1](https://sjtueducn-my.sharepoint.com/:u:/g/personal/cjang_cjengh_sjtu_edu_cn/ESltqOvyK3ZPsLMQwpv5FH0BoX8slLVsz3eUKwHHKkg9ww?e=vc5fdd) ['japanese_cleaners']
+* [Model 2](https://sjtueducn-my.sharepoint.com/:u:/g/personal/cjang_cjengh_sjtu_edu_cn/ETNLDYH_ZRpMmNR0VGALhNQB5-LiJOqTaWQz8tXtbvCV-g?e=7nf2Ec) ['japanese_tokenization_cleaners']
+* [Model 3]() ['japanese_accent_cleaners']

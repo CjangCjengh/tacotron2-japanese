@@ -167,7 +167,7 @@ def japanese_accent_cleaners(text):
           a2_next = int(re.search(r"\+(\d+)\+", labels[n + 1]).group(1))
         # Accent phrase boundary
         if a3 == 1 and a2_next == 1:
-          text += ';'
+          text += ' '
         # Falling
         elif a1 == 0 and a2_next == a2 + 1 and a2 != n_moras:
           text += ')'
