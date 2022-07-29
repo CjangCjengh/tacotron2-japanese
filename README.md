@@ -25,6 +25,11 @@ nani ka acl tara itsu demo hanashi te kudasai. gakuiN no koto ja naku, shiji nik
 何かあったらいつでも話して下さい。学院のことじゃなく、私事に関することでも何でも
 #### After
 :na)nika a)cltara i)tsudemo ha(na)shIte ku(dasa)i.:ga(kuiNno ko(to)janaku,:shi)jini ka(Nsu)ru ko(to)demo na)nidemo.
+### 4. 'japanese_phrase_cleaners'
+#### Before
+何かあったらいつでも話して下さい。学院のことじゃなく、私事に関することでも何でも
+#### After
+nanika acltara itsudemo hanashIte kudasai. gakuiNno kotojanaku, shijini kaNsuru kotodemo nanidemo.
 
 ## Models
 Remember to change this line in ./inference.ipynb
