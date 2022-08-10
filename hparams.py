@@ -7,11 +7,6 @@ def create_hparams(hparams_string=None, verbose=False):
 
     hparams = hp.HParams(
         ################################
-        # CUDA Parameters              #
-        ################################
-        enable_cuda=False,
-
-        ################################
         # Experiment Parameters        #
         ################################
         epochs=100,
