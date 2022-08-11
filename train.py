@@ -1,22 +1,35 @@
 import os
 import time
-import argparse
 import math
-from numpy import finfo
-
 import torch
-from distributed import apply_gradient_allreduce
+import argparse
 import torch.distributed as dist
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import DataLoader
 
+
+from numpy import finfo
 from model import Tacotron2
-from data_utils import TextMelLoader, TextMelCollate
-from loss_function import Tacotron2Loss
+from torch.backends import cudnn
 from logger import Tacotron2Logger
 from hparams import create_hparams
+from torch.utils.data import DataLoader
+from loss_function import Tacotron2Loss
+from distributed import apply_gradient_allreduce
+from data_utils import TextMelLoader, TextMelCollate
+from torch.utils.data.distributed import DistributedSampler
 
 
+
+
+
+
+
+
+
+# 规定合适的设备
+device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
+
+
+# 清理tensor
 def reduce_tensor(tensor, n_gpus):
     rt = tensor.clone()
     dist.all_reduce(rt, op=dist.reduce_op.SUM)
@@ -24,6 +37,7 @@ def reduce_tensor(tensor, n_gpus):
     return rt
 
 
+# 初始化分配
 def init_distributed(hparams, n_gpus, rank, group_name):
     assert torch.cuda.is_available(), "Distributed mode requires CUDA."
     print("Initializing Distributed")
@@ -39,6 +53,7 @@ def init_distributed(hparams, n_gpus, rank, group_name):
     print("Done initializing distributed")
 
 
+# 准备数据加载器
 def prepare_dataloaders(hparams):
     # Get data, data loaders and collate function ready
     trainset = TextMelLoader(hparams.training_files, hparams)
@@ -70,8 +85,12 @@ def prepare_directories_and_logger(output_directory, log_directory, rank):
     return logger
 
 
+# 加载模型
 def load_model(hparams):
-    model = Tacotron2(hparams).cuda()
+    # model = Tacotron2(hparams).cuda() 这样未免太绝对，对于那些没有cuda的很不公平
+    model = Tacotron2(hparams)
+    model.to(device)
+    # 这里实际上在大多数的设备上可以注释掉直接调用cuda就行，（能跑就行）况且config中默认为False
     if hparams.fp16_run:
         model.decoder.attention_layer.score_mask_value = finfo('float16').min
 
@@ -146,8 +165,14 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
         logger.log_validation(val_loss, model, y, y_pred, iteration)
 
 
-def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
-          rank, group_name, hparams):
+def train(output_directory,
+          log_directory,
+          checkpoint_path,
+          warm_start,
+          n_gpus,
+          rank,
+          group_name,
+          hparams):
     """Training and validation logging results to tensorboard and stdout
 
     Params
@@ -170,19 +195,21 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=hparams.weight_decay)
 
-    if hparams.fp16_run:
-        from apex import amp
-        model, optimizer = amp.initialize(
-            model, optimizer, opt_level='O2')
+    # 这里可以注释掉，经过本地windows10测试无法正常使用apex库;
+    # 况且在实际训练中这个地方为False.
+    # if hparams.fp16_run:  使用精度f16运行apex加速
+    #    from apex import amp
+    #    model, optimizer = amp.initialize(
+    #        model, optimizer, opt_level='O2')
 
     if hparams.distributed_run:
-        model = apply_gradient_allreduce(model)
+        model = apply_gradient_allreduce(model) # 对模型应用梯度参数还原
 
+    # 损失函数
     criterion = Tacotron2Loss()
-
-    logger = prepare_directories_and_logger(
-        output_directory, log_directory, rank)
-
+    # 日志记录
+    logger = prepare_directories_and_logger(output_directory, log_directory, rank)
+    # 数据加载器
     train_loader, valset, collate_fn = prepare_dataloaders(hparams)
 
     # Load checkpoint if one exists
@@ -219,21 +246,11 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 reduced_loss = reduce_tensor(loss.data, n_gpus).item()
             else:
                 reduced_loss = loss.item()
-            if hparams.fp16_run:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
 
-            if hparams.fp16_run:
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    amp.master_params(optimizer), hparams.grad_clip_thresh)
-                is_overflow = math.isnan(grad_norm)
-            else:
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    model.parameters(), hparams.grad_clip_thresh)
-
-            optimizer.step()
+            loss.backward()# 将损失进行反向传播
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), hparams.grad_clip_thresh)
+            # 梯度裁剪，防止梯度消失
+            optimizer.step()# 执行优化器对网络权重参数进行优化调整
 
             if not is_overflow and rank == 0:
                 duration = time.perf_counter() - start
@@ -275,10 +292,10 @@ if __name__ == '__main__':
                         required=False, help='comma separated name=value pairs')
 
     args = parser.parse_args()
-    hparams = create_hparams(args.hparams)
 
-    torch.backends.cudnn.enabled = hparams.cudnn_enabled
-    torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
+    hparams = create_hparams()
+    cudnn.enabled = hparams.cudnn_enabled
+    cudnn.benchmark = hparams.cudnn_benchmark
 
     print("FP16 Run:", hparams.fp16_run)
     print("Dynamic Loss Scaling:", hparams.dynamic_loss_scaling)
