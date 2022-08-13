@@ -3,6 +3,10 @@ from text import symbols
 
 class create_hparams():
     """Create model hyperparameters. Parse nondefault from given string."""
+    ################################
+    # Experiment Parameters        #
+    ################################
+    cuda_enabled = False
 
     ################################
     # Experiment Parameters        #
