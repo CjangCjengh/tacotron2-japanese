@@ -1,22 +1,26 @@
 import os
 import time
-import argparse
 import math
-from numpy import finfo
-
 import torch
-from distributed import apply_gradient_allreduce
+import argparse
 import torch.distributed as dist
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import DataLoader
 
+
+from numpy import finfo
 from model import Tacotron2
-from data_utils import TextMelLoader, TextMelCollate
-from loss_function import Tacotron2Loss
-from logger import Tacotron2Logger
+from torch.backends import cudnn
 from hparams import create_hparams
+from logger import Tacotron2Logger
+from torch.utils.data import DataLoader
+from loss_function import Tacotron2Loss
+from distributed import apply_gradient_allreduce
+from data_utils import TextMelLoader, TextMelCollate
+from torch.utils.data.distributed import DistributedSampler
 
 
+device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
+
+# 整理tensor
 def reduce_tensor(tensor, n_gpus):
     rt = tensor.clone()
     dist.all_reduce(rt, op=dist.reduce_op.SUM)
@@ -25,18 +29,23 @@ def reduce_tensor(tensor, n_gpus):
 
 
 def init_distributed(hparams, n_gpus, rank, group_name):
-    assert torch.cuda.is_available(), "Distributed mode requires CUDA."
+    #assert torch.cuda.is_available(), "Distributed mode requires CUDA."
+    if torch.cuda.is_available() :
+        # Set cuda device so everything is done on the right GPU.
+        torch.cuda.set_device(rank % torch.cuda.device_count())
+        # Initialize distributed communication
+        dist.init_process_group(backend=hparams.dist_backend,
+                                init_method=hparams.dist_url,
+                                world_size=n_gpus,
+                                rank=rank,
+                                group_name=group_name)
+        print("Distributed mode requires CUDA.")
+    else :
+        print("Use the CPU")
     print("Initializing Distributed")
 
-    # Set cuda device so everything is done on the right GPU.
-    torch.cuda.set_device(rank % torch.cuda.device_count())
-
-    # Initialize distributed communication
-    dist.init_process_group(
-        backend=hparams.dist_backend, init_method=hparams.dist_url,
-        world_size=n_gpus, rank=rank, group_name=group_name)
-
     print("Done initializing distributed")
+
 
 
 def prepare_dataloaders(hparams):
@@ -71,7 +80,8 @@ def prepare_directories_and_logger(output_directory, log_directory, rank):
 
 
 def load_model(hparams):
-    model = Tacotron2(hparams).cuda()
+    model = Tacotron2(hparams)
+    model.to(device)
     if hparams.fp16_run:
         model.decoder.attention_layer.score_mask_value = finfo('float16').min
 
@@ -170,19 +180,17 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=hparams.weight_decay)
 
-    if hparams.fp16_run:
-        from apex import amp
-        model, optimizer = amp.initialize(
-            model, optimizer, opt_level='O2')
+    # 默认的是 False 可以注释掉
+    #if hparams.fp16_run:
+    #    from apex import amp
+    #    model, optimizer = amp.initialize(
+    #        model, optimizer, opt_level='O2')
 
     if hparams.distributed_run:
         model = apply_gradient_allreduce(model)
 
     criterion = Tacotron2Loss()
-
-    logger = prepare_directories_and_logger(
-        output_directory, log_directory, rank)
-
+    logger = prepare_directories_and_logger(output_directory, log_directory, rank)
     train_loader, valset, collate_fn = prepare_dataloaders(hparams)
 
     # Load checkpoint if one exists
@@ -219,20 +227,9 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 reduced_loss = reduce_tensor(loss.data, n_gpus).item()
             else:
                 reduced_loss = loss.item()
-            if hparams.fp16_run:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
 
-            if hparams.fp16_run:
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    amp.master_params(optimizer), hparams.grad_clip_thresh)
-                is_overflow = math.isnan(grad_norm)
-            else:
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    model.parameters(), hparams.grad_clip_thresh)
-
+            loss.backward()
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), hparams.grad_clip_thresh)
             optimizer.step()
 
             if not is_overflow and rank == 0:
@@ -257,9 +254,9 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--output_directory', type=str,
-                        help='directory to save checkpoints')
-    parser.add_argument('-l', '--log_directory', type=str,
+    parser.add_argument('-o', '--output_directory', type=str, default='No',
+                        help='directory to save checkpoints ')
+    parser.add_argument('-l', '--log_directory', type=str,default='No',
                         help='directory to save tensorboard logs')
     parser.add_argument('-c', '--checkpoint_path', type=str, default=None,
                         required=False, help='checkpoint path')
@@ -275,10 +272,10 @@ if __name__ == '__main__':
                         required=False, help='comma separated name=value pairs')
 
     args = parser.parse_args()
-    hparams = create_hparams(args.hparams)
+    hparams = create_hparams()
 
-    torch.backends.cudnn.enabled = hparams.cudnn_enabled
-    torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
+    cudnn.enabled = hparams.cudnn_enabled#create_hparams.cudnn_enabled
+    cudnn.benchmark = hparams.cudnn_benchmark#create_hparams.cudnn_benchmark
 
     print("FP16 Run:", hparams.fp16_run)
     print("Dynamic Loss Scaling:", hparams.dynamic_loss_scaling)
@@ -286,5 +283,11 @@ if __name__ == '__main__':
     print("cuDNN Enabled:", hparams.cudnn_enabled)
     print("cuDNN Benchmark:", hparams.cudnn_benchmark)
 
-    train(args.output_directory, args.log_directory, args.checkpoint_path,
-          args.warm_start, args.n_gpus, args.rank, args.group_name, hparams)
+    train(args.output_directory,
+          args.log_directory,
+          args.checkpoint_path,
+          args.warm_start,
+          args.n_gpus,
+          args.rank,
+          args.group_name,
+          hparams)
