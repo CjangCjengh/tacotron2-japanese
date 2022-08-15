@@ -4,11 +4,11 @@ import torch
 
 
 from hparams import create_hparams
-hparams = create_hparams()
+hparam = create_hparams()
 
 def get_mask_from_lengths(lengths):
     max_len = torch.max(lengths).item()
-    if hparams.cuda_enabled :
+    if hparam.cuda_enabled :
         ids = torch.arange(0, max_len, out=torch.cuda.LongTensor(max_len))
         mask = (ids < lengths.unsqueeze(1)).bool()
     else :
