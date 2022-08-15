@@ -361,3 +361,14 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# models
+/ayachi_*
+/inaba_*
+/tomotake_*
+/murasame_*
+/arihara_*
+/waveglow_*
+
+# jupyter cache
+/.ipynb_checkpoints
