@@ -5,6 +5,7 @@ import torch
 
 from hparams import create_hparams
 hparam = create_hparams()
+hparam.cuda_enabled = False
 
 def get_mask_from_lengths(lengths):
     max_len = torch.max(lengths).item()
