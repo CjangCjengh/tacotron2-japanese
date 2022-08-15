@@ -2,7 +2,7 @@
 - Tacotron2 implementation of Japanese
 ## Links
 * Reference: [NVIDIA/tacotron2](https://github.com/NVIDIA/tacotron2)
-* [Pre-training tacotron2 models](https://github.com/StarxSky/tacotron2-japanese/edit/master/README.md#models)
+* [Pre-training tacotron2 models](https://github.com/CjangCjengh/tacotron2-japanese#models)
 * [latest changes can be viewed in this repository](https://github.com/StarxSky/tacotron2-JP) 
 
 ## How to use
