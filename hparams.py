@@ -1,8 +1,16 @@
+import torch
 from text import symbols
 
 
 class create_hparams():
     """Create model hyperparameters. Parse nondefault from given string."""
+    ################################
+    #       CUDA Enable            #
+    ################################
+    if torch.cuda.is_available() :
+        cuda_enabled = True    
+    else :
+        cuda_enabled = False
 
     ################################
     # Experiment Parameters        #
